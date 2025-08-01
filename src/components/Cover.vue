@@ -11,24 +11,25 @@
 </template>
 
 <script setup>
-import { getCurrentInstance } from "vue";
+import { getCurrentInstance } from 'vue';
 const { proxy } = getCurrentInstance();
 
 const localCover = new URL("@/assets/default_cover.png", import.meta.url).href;
 
 const props = defineProps({
-  cover: {
-    type: String,
-  },
-  width: {
-    type: Number,
-    default: 60,
-  },
+      cover:{
+        type:String,
+
+      },
+      width:{
+        type:Number,
+        default: 60,
+      }
 });
 </script>
 
 <style lang="scss">
-.cover {
+.cover{
   background: #ddd;
   border-radius: 5px;
   overflow: hidden;

@@ -1,18 +1,55 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import store from "@/store"
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'layout',
+      name: "layout",
       component: () => import('@/views/Layout.vue'),
-      // children:[{
-
-      // }]
+      children: [{
+        path: '/',
+        name: "所有文章",
+        component: () => import('@/views/forum/ArticleList.vue'),
+      }, {
+        path: '/forum/:pBoardId',
+        name: "一级板块",
+        component: () => import('@/views/forum/ArticleList.vue'),
+      }, {
+        path: '/forum/:pBoardId/:boardId',
+        name: "二级板块",
+        component: () => import('@/views/forum/ArticleList.vue'),
+      },
+      {
+        path: '/post/:articleId/',
+        name: "文章详情",
+        component: () => import('@/views/forum/ArticleDetail.vue'),
+      }, {
+        path: '/newPost',
+        name: "发表文章",
+        component: () => import('@/views/forum/EditPost.vue'),
+      }, {
+        path: '/editPost/:articleId',
+        name: "编辑文章",
+        component: () => import('@/views/forum/EditPost.vue'),
+      }, {
+        path: '/user/:userId/',
+        name: "用户信息",
+        component: () => import('@/views/ucenter/Ucenter.vue'),
+      }, {
+        path: '/admin',
+        name: "社区管理",
+        component: () => import('@/views/Admin.vue'),
+      },]
     }
   ]
 })
 
-
+router.beforeEach((to, from, next) => {
+  if (to.path.indexOf("/user") != -1) {
+    store.commit("setActivePboardId", -1);
+  }
+  next();
+})
 
 export default router

@@ -50,7 +50,10 @@ body {
 }
 
 .container-body {
-  margin: 0px auto;
+  max-width: 1200px;
+  /* 或你主内容的宽度 */
+  width: 100%;
+  margin: 0 auto;
   padding-top: 5px;
 }
 
@@ -65,4 +68,47 @@ body {
 .tag-no-audit {
   color: var(--text2);
   border: 1px solid var(--text2);
+}
+
+.op-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px; // 按钮之间的间距
+
+}
+
+.quick-panel {
+  position: fixed;
+  left: 150px;
+  /* 距离页面左侧30px，可调 */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  z-index: 1000;
+
+  .el-badge_content.is-fixed {
+    top: 5px;
+    right: 15px;
+  }
+
+  .quick-item {
+    display: flex;
+    width: 50px;
+    height: 50px;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    background: #fff;
+    margin-bottom: 30px;
+    cursor: pointer;
+
+    .iconfont {
+      font-size: 22px;
+      color: var(--text2);
+    }
+
+    .have-like {
+      color: red;
+    }
+  }
 }

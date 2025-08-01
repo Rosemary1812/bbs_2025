@@ -150,7 +150,7 @@ const loadArticle = async () => {
   let result = await proxy.Request({
     url: api.loadUserArticle,
     params: params,
-    showLoading: false,
+    showLoading: true,
   });
   loading.value = false;
   if (!result) {

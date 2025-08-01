@@ -43,6 +43,7 @@ const props = defineProps({
   },
 });
 
+const localPreview=ref(false);
 const localFile = ref(null);
 const emit = defineEmits();
 const uploadImage = async (file) => {
@@ -53,6 +54,7 @@ const uploadImage = async (file) => {
     localFile.value = target.result;
   };
   emit("update:modelValue", file);
+  localPreview.value = true;
 };
 </script>
 

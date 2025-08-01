@@ -8,65 +8,158 @@
       <span v-for="(item, index) in logoInfo" :key="index" :style="{color:item.color}">{{ item.letter }}</span>
     </router-link>
     <!-- 板块信息 -->
-    <div class="menu-panel"></div>
+        <div class="menu-panel">
+          <router-link
+            :class="[
+              'menu-item home',
+              activePboardId == undefined ? 'active' : '',
+            ]"
+            to="/"
+            >首页</router-link
+          >
+          <template v-for="board in boardList" :key="board.boardId">
+            <el-popover
+              placement="bottom-start"
+              :width="300"
+              trigger="hover"
+              v-if="board.children.length > 0"
+            >
+              <template #reference>
+                <span
+                  :class="[
+                    'menu-item',
+                    board.boardId == activePboardId ? 'active' : '',
+                  ]"
+                  @click="boardClickHandler(board)"
+                  >{{ board.boardName }}</span
+                >
+              </template>
+              <div class="sub-board-list">
+                <span
+                  :class="['sub-board',subBoard.boardId == activeBoardId ? 'active' : '',]"
+                  v-for="subBoard in board.children"
+                  :key="subBoard.boardId"
+                  @click="subBoardClickHandler(subBoard)"
+                  >{{ subBoard.boardName }}</span
+                >
+              </div>
+            </el-popover>
+            <span
+              :class="[
+                'menu-item',
+                board.boardId == activePboardId ? 'active' : '',
+              ]"
+              v-else
+              @click="boardClickHandler(board)"
+              >{{ board.boardName }}</span
+            >
+          </template>
+        </div>
     <!-- 登陆注册用户信息· -->
     <div class="user-info-panel">
-      <el-button type="info" class="op-btn">
+      <el-button type="info" class="op-btn" size="default" @click="newPost">
         发帖<span class="iconfont icon-add"></span>
       </el-button>
-      <el-button type="info" class="op-btn">
+      <el-button type="info" class="op-btn" size="default">
         搜索<span class="iconfont icon-search"></span>
       </el-button>
-      <el-button-group :style="{'margin-left':'20px'}">
-        <el-button type="info" plain>登录</el-button>
-        <el-button type="info" plain>注册</el-button>
-      </el-button-group>
+      
+      <div v-if="userInfo.userId">
+      <div class="message-info">
+        <el-dropdown>
+          <el-badge :value="12" class="item">
+            <div class="iconfont icon-message"></div>
+          </el-badge>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item>回复我的</el-dropdown-item>
+              <el-dropdown-item>赞了我的文章</el-dropdown-item>
+              <el-dropdown-item>下载了我的附件</el-dropdown-item>
+              <el-dropdown-item>赞了我的评论</el-dropdown-item>
+              <el-dropdown-item>系统消息</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+      <div class="user-info">
+        <el-dropdown>
+          <avatar :userId="userInfo.userId" :width="50"></avatar>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="goToUserCenter">我的主页</el-dropdown-item>
+              <el-dropdown-item v-if="userInfo.admin" @click="goToAdmin">社区管理</el-dropdown-item>
+              <el-dropdown-item @click="logout">退出</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+      </div>
 
-    </div>
+      <el-button-group :style="{'margin-left':'5px'}" v-else>
+        <el-button type="primary" plain @click="loginAndRegister(1)">登录</el-button>
+        <el-button type="primary" plain @click="loginAndRegister(0)">注册</el-button>
+      </el-button-group>
+      </div>
     </div>
   </div>
-  <div>
+
+  <div class="body-content">
     <router-view />
   </div>
+  <!-- 登录注册 -->
+  <LoginAndRegister ref="loginAndRegisterRef" />
 </div>
 </template>
 
 <script setup>
-import { ref,reactive,getCurrentInstance, onMounted } from 'vue'
+import LoginAndRegister from './LoginAndRegister.vue';
+import { ref,reactive,getCurrentInstance, onMounted, watch } from 'vue'
 import { useRouter,useRoute } from 'vue-router';
+import {useStore} from "vuex";
+import Avatar from '@/components/Avatar.vue';
+import { it, tr } from 'element-plus/es/locale/index.mjs';
 const{proxy}=getCurrentInstance();
 const router=useRouter();
 const route=useRoute();
+const store=useStore();
+
+const api={
+  getUserInfo:"/getUserInfo",
+  loadBoard:"/board/loadBoard",
+};
 
 const logoInfo=ref([
 
   {
     "letter": "6",
-    "color": "#BA68C8"
+    "color": "#409EFF"
   },
   {
     "letter": "0",
-    "color": "#AB47BC"
+    "color": "#5CB8FF"
   },
   {
     "letter": "7",
-    "color": "#8E24AA"
+    "color": "#87CEFA"
   },
   {
     "letter": "の",
-    "color": "#7B1FA2"
+    "color": "#3A5F7F"
+
   },
   {
     "letter": "b",
-    "color": "#6A1B9A"
+    "color": "#87CEFA"
+
   },
   {
     "letter": "b",
-    "color": "#8E24AA"
+    "color": "#5CB8FF"
   },
   {
     "letter": "s",
-    "color": "#BA68C8"
+    "color": "#409EFF"
+
   }
 ]);
 
@@ -85,8 +178,10 @@ const initScroll=()=>{
   window.addEventListener("scroll",()=>{
     let currentScrollTop=getScrollTop();
     if(currentScrollTop>initScrollTop){
+      //往下滚
       scrollType=1;
     }else{
+      //往上滚
       scrollType=0;
     }
     initScrollTop=currentScrollTop;
@@ -98,27 +193,133 @@ const initScroll=()=>{
   })
 }
 
+// 登录注册
+const loginAndRegisterRef=ref();
+const loginAndRegister=(type)=>{
+loginAndRegisterRef.value.showPanel(type);
+}
+
 onMounted(()=>{
   initScroll();
+  getUserInfo();
 });
 
+const getUserInfo=()=>{
+  let result =proxy.Request({
+    url:api.getUserInfo,
+  });
+  if(!result){
+    return;
+  }
+  store.commit("updateLoginUserInfo",result.data);
+};
+
+//获取板块信息
+const boardList=ref([]);
+const loadBoard=async()=>{
+let result=await proxy.Request({
+  url:api.loadBoard,
+});
+if(!result){
+  return;
+}
+boardList.value=result.data;
+store.commit("saveBoardList", result.data);
+};
+loadBoard();
+
+const userInfo=ref({});
+watch(
+  ()=>store.state.loginUserInfo,
+  (newVal,oldVal)=>{
+      if(newVal!=undefined&&newVal!=null){
+        userInfo.value=newVal;
+      }else{
+
+      }
+  },
+  {immediate:true,deep:true}
+);
+//监听是否展示登录框
+watch(
+  ()=>store.state.showLogin,
+  (newVal,oldVal)=>{
+    if(newVal){
+      loginAndRegister(1);
+    }
+  },
+  {immediate:true,deep:true}
+);
+
+//板块点击
+const boardClickHandler = (board) => {
+  router.push(`/forum/${board.boardId}`);
+};
+
+//二级板块
+const subBoardClickHandler = (subBoard) => {
+  router.push(`/forum/${subBoard.pBoardId}/${subBoard.boardId}`);
+};
+
+//当前选中的板块
+const activePboardId=ref(0);
+watch(
+  ()=>store.state.activePBoardId,
+  (newVal,oldVal)=> {
+    activePboardId.value = newVal || 0;
+  },
+  {immediate:true,deep:true}
+);
+
+//当前选中的二级板块
+const activeBoardId=ref(0);
+watch(
+  ()=>store.state.activeBoardId,
+  (newVal,oldVal)=> {
+    activeBoardId.value = newVal || 0;
+  },
+  {immediate:true,deep:true}
+);
+
+const newPost=()=>{
+  if(!store.getters.getLoginUserInfo){
+    loginAndRegister(1);
+  }else{
+    router.push("/newPost");
+  }
+}
+
+const goToUserCenter=()=>{
+  if(userInfo.value.userId){
+    router.push(`/user/${userInfo.value.userId}/`);
+  }
+}
+
+const goToAdmin=()=>{
+  router.push("/admin");
+}
+
+const logout=()=>{
+  store.commit("updateLoginUserInfo", null);
+  router.push("/");
+}
 </script>
 
 <style lang="scss" >
 .header{
+  top:0px;
   width: 100%;
   position: fixed;
   box-shadow: 0 2px 6px 0 #ddd;
   z-index: 1000;
   background-color: #fff;
   .header-content{
-      width: 100%;
+      // width: 100%;
       max-width: 1200px;
       margin: 0px auto;
       align-items: center;
-      height: 60px;
+      height: 70px;
       display: flex;
-      align-items:center ;
     .logo{
       display: block;
       text-decoration: none;
@@ -129,16 +330,82 @@ onMounted(()=>{
     }
     .menu-panel{
       flex:1;
+      .menu-item{
+        margin-left: 20px;
+        cursor: pointer;
+      }
+      .home{
+        text-decoration: none;
+        color: #000;
+      }
+      .active{
+        color: var(--link);
+      }
     }
     .user-info-panel{
-      width: 300px;
+      width: 350px;
       display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      
       .op-btn{
+        display: flex;
+        align-items: center;
         .iconfont{
           margin-left: 5px;
         }
+ 
+      }
+      
+      .message-info{
+        display: flex;
+        align-items: center;
+        margin-top: 8px;
+        .icon-message{
+          font-size: 25px;
+          color: rgb(147, 147, 147);
+        }
+      }
+      
+      .user-info{
+        display: flex;
+        align-items: center;
+        margin-top: -25px;
+        margin-left: 30px;
       }
     }
   }
 }
+
+.sub-board-list{
+  display: flex;
+  flex-wrap: wrap;
+  .sub-board{
+    padding:0px 10px;
+    border-radius: 20px;
+    margin-right:10px;
+    background:rgb(239,239,239);
+    border:1px solid #ddd;
+    color:rgb(119,118,118);
+    margin-top:10px;
+  }
+  .sub-board:hover{
+    color:var(--link);
+    cursor: pointer;
+  }
+  .active{
+    background:var(--link);
+    color:#fff;
+  }
+  .active:hover{
+    color: #fff;
+  }
+}
+.body-content {
+  margin-top: 70px;
+  position: relative;
+  min-height: calc(100vh - 210px);
+}
 </style>
+

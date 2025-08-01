@@ -1,11 +1,10 @@
 <template>
-  <div
-    v-if="!loading && dataSource.list != null && dataSource.list.length == 0"
-  >
-    <NoData :msg="noDataMsg"></NoData>
+  <!-- 修改 Loading 为 loading -->
+  <div v-if="!loading && dataSource.list != null && dataSource.list.length === 0">
+    <NoData :msg="NoDataMsg"></NoData>
   </div>
   <div class="skeleton" v-if="loading">
-    <el-skeleton :row="2" animated></el-skeleton>
+    <el-skeleton :rows="2" animated></el-skeleton>
   </div>
   <div v-for="item in dataSource.list" v-if="!loading">
     <slot :data="item"></slot>
@@ -25,31 +24,37 @@
 </template>
 
 <script setup>
-const props = defineProps({
-  dataSource: {
-    type: Object,
+import { Loading } from 'element-plus/es/components/loading/src/service.mjs';
+import { fa } from 'element-plus/es/locale/index.mjs';
+import NoData from './NoData.vue';
+
+const props=defineProps({
+  dataSource:{
+    type:Object
   },
-  loading: {
-    type: Boolean,
+  loading:{
+    type:Boolean,
+
   },
-  noDataMsg: {
-    type: String,
-    default: "空空如也",
-  },
+  NoDataMsg:{
+    type:String,
+    default:"空空如也"
+  }
 });
 
-const emit = defineEmits(["loadData"]);
-const handlePageNoChange = (pageNo) => {
-  props.dataSource.pageNo = pageNo;
+const emit=defineEmits(["loadData"]);
+
+const handlePageNoChange=(pageNo)=>{
+  props.dataSource.pageNo=pageNo;
   emit("loadData");
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" >
 .pagination {
   padding: 10px 0px 10px 10px;
 }
-.skeleton {
+.skeleton{
   padding: 15px;
 }
 </style>

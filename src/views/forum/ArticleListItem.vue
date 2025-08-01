@@ -1,118 +1,101 @@
 <template>
   <div class="article-item">
     <div class="article-item-inner">
-      <div class="article-body">
-        <div class="user-info">
-          <Avatar :userId="data.userId" :width="30"></Avatar>
-          <router-link :to="'/user/' + data.userId" class="link-info">{{
-            data.nickName
-          }}</router-link>
-          <el-divider direction="vertical"></el-divider>
-          <div class="post-time">{{ data.postTime }}</div>
-          <div class="address">&nbsp;·&nbsp;{{ data.userIpAddress }}</div>
-          <el-divider direction="vertical"></el-divider>
+      <!-- 添加 flex 容器 -->
+      <div class="content-wrapper">
+        <div class="article-body">
+          <div class="user-info">
+            <Avatar :userId="data.userId" :width="30"></Avatar>
+            <router-link :to="'/user/' + data.userId" class="link-info">{{ data.nickname }}</router-link>
+            <el-divider direction="vertical"></el-divider>
+            <div class="post-time">{{ data.postTime }}</div>
+            <div class="address">&nbsp;·&nbsp;{{ data.userIpAddress }}</div>
+            <el-divider direction="vertical"></el-divider>
           <router-link :to="`/forum/${data.pBoardId}`" class="link-info">{{
             data.pBoardName
           }}</router-link>
-          <template v-if="data.boardName">
+            <template v-if="data.boardName">
             <span>&nbsp;/&nbsp;</span>
             <router-link
               :to="`/forum/${data.pBoardId}/${data.boardId}`"
               class="link-info"
               >{{ data.boardName }}</router-link
             >
-          </template>
+            </template>
+          </div>
+          <router-link :to="`/post/${data.articleId}`" class="title">
+            <span v-if="data.topType==1" class="top">置顶</span>
+            <span>{{ data.title }}</span>
+          </router-link>
+          <div class="summary">{{ data.summary }}</div>
+          <div class="article-info">
+            <span class="iconfont icon-eye-solid">{{ data.readCount==0?"阅读":data.readCount }}</span>
+            <span class="iconfont icon-good">{{ data.goodCount==0?"点赞":data.goodCount }}</span>
+            <span class="iconfont icon-comment">{{ data.commentCount==0?"评论":data.commentCount }}</span>
+
+          </div>
         </div>
-        <router-link :to="`/post/${data.articleId}`" class="title">
-          <span v-if="data.topType == 1" class="top">置顶</span>
-          <span v-if="data.status == 0" class="tag tag-no-audit">待审核</span>
-          <span v-if="htmlTitle" v-html="data.title"></span>
-          <span v-else>{{ data.title }}</span>
+        <router-link :to="`/post/${data.articleId}`">
+          <Cover :cover="data.cover" :width="100" v-if="data.cover"></Cover>
         </router-link>
-        <div class="summary">{{ data.summary }}</div>
-        <div class="article-info">
-          <span class="iconfont icon-eye-solid">
-            {{ data.readCount == 0 ? "阅读" : data.readCount }}
-          </span>
-          <span class="iconfont icon-good">
-            {{ data.goodCount == 0 ? "点赞" : data.goodCount }}
-          </span>
-          <span class="iconfont icon-comment" v-if="showComment">
-            {{ data.commentCount == 0 ? "评论" : data.commentCount }}
-          </span>
-          <span
-            class="iconfont icon-edit edit-btn"
-            v-if="showEdit"
-            @click="editArticle(data.articleId)"
-            >编辑</span
-          >
-        </div>
       </div>
-      <router-link :to="`/post/${data.articleId}`"
-        ><Cover :cover="data.cover" :width="100" v-if="data.cover"></Cover
-      ></router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from "vue-router";
-const router = useRouter();
-const props = defineProps({
-  data: {
-    type: Object,
-  },
-  showComment: {
-    type: Boolean,
-  },
-  showEdit: {
-    type: Boolean,
-  },
-  htmlTitle: {
-    type: Boolean,
-    default: false,
+const props=defineProps({
+  data:{
+    type:Object,
   },
 });
-const editArticle = (articleId) => {
-  router.push(`/editPost/${articleId}`);
-};
 </script>
 
-<style lang="scss" scoped>
+
+<style lang="scss">
 .article-item {
-  padding: 5px 15px 0 15px;
+  padding: 5px 10px 0 10px;
   .article-item-inner {
     border-bottom: 1px solid #ddd;
     padding: 10px 0px;
-    display: flex;
+    
+    // 新增 flex 布局容器样式
+    .content-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    
     .article-body {
-      flex: 1;
-      .user-info {
+      flex: 1; // 文章内容占据剩余空间
+      .user-info{
         display: flex;
         align-items: center;
         font-size: 14px;
         color: #4e5969;
-        .link-info {
+        .link-info{
           margin-left: 5px;
           color: #494949;
           text-decoration: none;
         }
-        .link-info:hover {
-          color: var(--link);
+        .link-info:hover{
+          color:var(--link)
         }
-        .post-time {
+        .post-time{
           font-size: 13px;
-          color: #9a9a9a;
+          color: #9a9a9a9a;
         }
       }
-      .title {
-        font-weight: bold;
+      .title{
+        font-size: 16px;
         text-decoration: none;
         color: #4a4a4a;
-        font-size: 16px;
+        font-weight: bold;
         margin: 10px 0px;
         display: inline-block;
-        .top {
+        .top{
+          font-weight: normal;
           font-size: 12px;
           border-radius: 5px;
           border: 1px solid var(--pink);
@@ -121,32 +104,29 @@ const editArticle = (articleId) => {
           margin-right: 10px;
         }
       }
-      .summary {
-        font-size: 14px;
-        color: #86909c;
+      .summary{
+       margin-top: 10px;
+       font-size: 14px;
+       color: #86909c; 
       }
-      .article-info {
-        margin-top: 10px;
+      .article-info{
+        margin-top:10px;
         display: flex;
         align-items: center;
         font-size: 13px;
-        .iconfont {
-          color: #86909c;
+        .iconfont{
+          color:#86909c;
           margin-right: 25px;
           font-size: 14px;
         }
-        .iconfont:before {
+        .iconfont:before{
           padding-right: 3px;
-        }
-        .edit-btn {
-          color: var(--link);
-          cursor: pointer;
         }
       }
     }
   }
 }
-.article-item:hover {
-  background: #fffbfb;
+.article-item:hover{
+  background-color: #f5f5f5;
 }
 </style>

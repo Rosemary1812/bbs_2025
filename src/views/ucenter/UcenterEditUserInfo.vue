@@ -14,7 +14,7 @@
       </el-form-item>
       <el-form-item label="头像" prop="avatar">
         <CoverUpload
-          :imageUlrPrefix="proxy.globalInfo.avatarUrl"
+          :imageUlrPrefix="proxy.globalInfo.avatarURL"
           v-model="formData.avatar"
         ></CoverUpload>
       </el-form-item>
