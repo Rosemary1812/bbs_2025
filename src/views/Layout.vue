@@ -67,16 +67,56 @@
       <div v-if="userInfo.userId">
       <div class="message-info">
         <el-dropdown>
-          <el-badge :value="12" class="item">
+          <el-badge :value="messageCountInfo.total" class="item" :hidden="messageCountInfo.total==0||messageCountInfo.total==null">
             <div class="iconfont icon-message"></div>
           </el-badge>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item>回复我的</el-dropdown-item>
-              <el-dropdown-item>赞了我的文章</el-dropdown-item>
-              <el-dropdown-item>下载了我的附件</el-dropdown-item>
-              <el-dropdown-item>赞了我的评论</el-dropdown-item>
-              <el-dropdown-item>系统消息</el-dropdown-item>
+              <el-dropdown-item @click="goToMessage('reply')"
+               class="message-item"
+               > 
+                <span class="text">回复我的</span>
+                <span class="count-tag" v-if="messageCountInfo.reply>0">{{messageCountInfo.reply>99
+                ?'99+'
+                :messageCountInfo.reply
+                }}</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="goToMessage('likePost')"
+               class="message-item"
+               >
+                <span class="text">赞了我的文章</span>
+                <span class="count-tag" v-if="messageCountInfo.likePost>0">{{messageCountInfo.likePost>99
+                ?'99+'
+                :messageCountInfo.likePost
+                }}</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="goToMessage('downloadAttachment')"
+               class="message-item"
+               >
+                <span class="text">下载了我的附件</span>
+                <span class="count-tag" v-if="messageCountInfo.downloadAttachment>0">{{messageCountInfo.downloadAttachment>99
+                ?'99+'
+                :messageCountInfo.downloadAttachment
+                }}</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="goToMessage('likeComment')"
+               class="message-item"
+               >
+                <span class="text">赞了我的评论</span>
+                <span class="count-tag" v-if="messageCountInfo.likeComment>0" >{{messageCountInfo.likeComment>99
+                ?'99+'
+                :messageCountInfo.likeComment
+                }}</span>
+              </el-dropdown-item>
+              <el-dropdown-item @click="goToMessage('sys')" 
+              class="message-item"
+              >
+                <span class="text">系统消息</span>
+                <span class="count-tag" v-if="messageCountInfo.sys>0">{{messageCountInfo.sys>99
+                ?'99+'
+                :messageCountInfo.sys
+                }}</span>
+              </el-dropdown-item>  
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -126,6 +166,7 @@ const store=useStore();
 const api={
   getUserInfo:"/getUserInfo",
   loadBoard:"/board/loadBoard",
+  loadMessageCount:"/ucenter/loadMessageList",
 };
 
 const logoInfo=ref([
@@ -281,6 +322,7 @@ watch(
   {immediate:true,deep:true}
 );
 
+//发帖
 const newPost=()=>{
   if(!store.getters.getLoginUserInfo){
     loginAndRegister(1);
@@ -303,6 +345,22 @@ const logout=()=>{
   store.commit("updateLoginUserInfo", null);
   router.push("/");
 }
+//消息
+const goToMessage=(type)=>{
+  router.push(`/user/message/${type}`);
+};
+
+const messageCountInfo=ref({});
+  const loadMessageCount=async()=>{
+    let result=await proxy.Request({
+      url:api.loadMessageCount,
+    });
+    if(!result){
+      return;
+    }
+    messageCountInfo.value=result.data;
+  };
+loadMessageCount();
 </script>
 
 <style lang="scss" >
@@ -366,6 +424,7 @@ const logout=()=>{
           font-size: 25px;
           color: rgb(147, 147, 147);
         }
+
       }
       
       .user-info{
@@ -407,5 +466,26 @@ const logout=()=>{
   position: relative;
   min-height: calc(100vh - 210px);
 }
+
+.message-item{
+display: flex;
+justify-content: space-around;
+  .text{
+    flex:1;
+  }
+  .count-tag{
+    height: 20px;
+    line-height: 15px;
+    min-width: 20px;
+    display: inline-block;
+    background: #f56c6c;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+    color: #fff;
+    margin-left: 10px;
+  }
+}
 </style>
+
 

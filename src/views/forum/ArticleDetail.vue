@@ -5,6 +5,7 @@
         :style="{width:proxy.globalInfo.bodyWidth+ 'px' }"
         v-if="articleInfo && articleInfo.title"
     >
+    <!-- 板块导航 -->
     <div class="board-info">
       <router-link :to="`/forum/${articleInfo.pBoardId}`" class="a-link">{{
         articleInfo.pBoardName
@@ -19,12 +20,14 @@
         <span class="iconfont icon-right"></span>
       </template>
       <span>{{ articleInfo.title }}</span>
-    </div>
-
+      </div>
+      <!-- 文章详情 -->
         <div class="detail-container" :style="{width:proxy.globalInfo.bodyWidth-300+'px'}">
           <div class="article-detail">
             <!-- 标题 -->
-            <div class="title">{{ articleInfo.title }}</div>
+            <div class="title">{{ articleInfo.title }}
+              <el-tag v-if="articleInfo.status==0" type="danger">待审核</el-tag>
+            </div>
             <!-- 用户信息 -->
             <div class="user-info">
               <Avatar :userId="articleInfo.userId" :width="50"></Avatar>
@@ -36,6 +39,13 @@
                   <span class="iconfont icon-eye-solid">
                     {{ articleInfo.readCount==0? "阅读" :articleInfo.readCount }}
                   </span>
+                  <router-link
+                  v-if="currentUserInfo.userId==articleInfo.userId"
+                   :to="`/editPost/${articleInfo.articleId}`"
+                    class="a-link btn-edit"
+                    >
+                    <span class="iconfont icon-edit">编辑</span>
+                  </router-link>
                 </div>
               </div>
             </div>
@@ -67,9 +77,31 @@
                 @updateCommentCount="updateCommentCount"
                 ></CommentList>
               </div>
-              <!-- 左侧快捷操作 -->
+            <!-- 目录 -->
+         <div class="toc-panel">
+          <div class="top-container">
+            <div class="toc-title">目录</div>
+            <div class="toc-list">
+              <template v-if="tocArray.length==0">
+                <div class="no-toc">未解析到目录</div>
+              </template>
+              <template v-else>
+                <div  v-for="toc in tocArray" >
+                  <span 
+                  @click="gotoAnchor(toc.id)" 
+                  :class="['toc-item',anchorId==toc.id?'active':'']"
+                  :style="{'padding-left':toc.level*15+'px'}"
+                  >{{ toc.title }}</span>
+                </div>
+              </template>
+            </div>
+          </div>
+         </div>
         </div>
-               <div class="quick-panel" :style="{left:quickPanelLeft}+'px'">
+
+
+        <!-- 快捷操作 -->
+        <div class="quick-panel" :style="{left:quickPanelLeft}+'px'">
                 <!-- 点赞 -->
                 <el-badge :value="articleInfo.goodCount" type="info" :hidden="!articleInfo.goodCount>0">
                   <div class="quick-item" @click="doLikeHandler">
@@ -95,11 +127,11 @@
 </template>
 
 <script setup>
-import { fi, it, sr } from "element-plus/es/locale/index.mjs";
+import { fi, it, sr} from "element-plus/es/locale/index.mjs";
 import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-light.css"
 import CommentList from "./CommentList.vue";
-import { ref, getCurrentInstance, onMounted, nextTick ,watch} from "vue";
+import { ref, getCurrentInstance, onMounted, nextTick ,watch,onUnmounted} from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 const { proxy } = getCurrentInstance();
@@ -113,15 +145,14 @@ const api = {
     getUserDownloadInfo:"/forum/getUserDownloadInfo",
     attachmentDownload:"/api/forum/attachmentDownload",
 };
-
 const currentUserInfo=ref({});
-
 //文章详情
 const articleInfo = ref({});
 // 附件
 const attachment=ref({});
 //是否点赞
 const haveLike=ref(false);
+
 
 
 const getArticleDetail = async (articleId) => {
@@ -141,6 +172,8 @@ const getArticleDetail = async (articleId) => {
     //图片预览
     imagePreview();
     highlightcode();
+  //生成目录
+    makeToc(); 
     store.commit("setActivePboardId", result.data.forumArticle.pBoardId);
     store.commit("setActiveBoardId", result.data.forumArticle.boardId);
 };
@@ -155,7 +188,12 @@ watch(
 
 
 onMounted(() => {
+    // 初始化用户信息
+    currentUserInfo.value = store.getters.getLoginUserInfo || {};
+    // 获取文章详情
     getArticleDetail(route.params.articleId);
+    // 添加滚动监听
+    window.addEventListener("scroll", listenScroll, false);
 });
 
 const quickPanelLeft=(window.innerWidth-proxy.globalInfo.bodyWidth)/2-150;
@@ -263,10 +301,74 @@ const highlightcode=()=>{
     })
   })
 }
-
+//更新评论数量
 const updateCommentCount=(commentCount)=>{
   articleInfo.value.commentCount=commentCount;
 }
+//目录
+const tocArray=ref([]);
+const makeToc=()=>{
+  nextTick(()=>{
+    const tocTags=["H1","H2","H3","H4","H5","H6"];
+    //获取所有标题
+    const contentDom=document.querySelector("#detail");
+    const childNodes=contentDom.childNodes;
+    let index=0;
+    childNodes.forEach((item)=>{
+      let tagName=item.tagName;
+      if(tagName==undefined||!tocTags.includes(tagName.toUpperCase())){
+        return true;
+      }
+      index++;
+      let id="toc"+index;
+      item.setAttribute("id",id);
+      tocArray.value.push({
+        id:id,
+        title:item.innerText,
+        level:Number.parseInt(tagName.substring(1)),
+        offsetTop:item.offsetTop,
+      });
+    });
+  })
+}
+const anchorId=ref(null);
+const gotoAnchor=(domId)=>{
+  const dom=document.querySelector("#"+domId);
+  dom.scrollIntoView({
+    behavior:"smooth",
+    block:"start",
+  });
+};
+
+
+const listenScroll=()=>{
+  let currentScrollTop=getScrollTop();
+  tocArray.value.some((item,index)=>{
+    if(index<tocArray.value.length-1&&
+      currentScrollTop>=tocArray.value[index].offsetTop&&
+      currentScrollTop<tocArray.value[index+1].offsetTop||
+      index==tocArray.value.length-1&&
+      currentScrollTop<tocArray.value[index].offsetTop
+  ){
+    anchorId.value=item.id;
+    return true;
+  }
+    
+  });
+};
+const getScrollTop=()=>{
+  let scrollTop=
+  document.documentElement.scrollTop||
+  window.pageYOffset||
+  document.body.scrollTop;
+  return scrollTop;
+};
+
+
+
+onUnmounted(()=>{
+  window.removeEventListener("scroll",listenScroll,false);
+});
 </script>
 
 <style lang="scss" >
@@ -281,6 +383,7 @@ const updateCommentCount=(commentCount)=>{
     }
   }
   .detail-container {
+    width: 900px;
     .article-detail {
       background: #fff;
       padding: 15px;
@@ -367,6 +470,54 @@ const updateCommentCount=(commentCount)=>{
       background: #fff;
       padding: 20px;
     }
+  }
+}
+.toc-panel{
+  position: absolute;
+  top: 45px;
+  right: 0px;
+  width: 285px;
+  .top-container{
+    width: 285px;
+    // height: 500px;
+    background: #fff;
+    position: fixed;
+    .toc-title{
+      border-bottom: 1px solid #ddd;
+      padding:10px;
+    }
+    .toc-list{
+      max-height: calc(100vh - 200px);
+      overflow: auto;
+      padding: 5px;
+      .no-toc{
+      text-align: center;
+      color: #5d5d5d;
+      line-height: 40px;
+      font-size: 13px;
+    }
+    .toc-item{
+      display: block;
+      cursor: pointer;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color:#555666;
+      border-radius: 3px;
+      font-size: 14px;
+      line-height: 35px;
+      border-left: 2px solid #fff;
+    }
+    .toc-item:hover{
+      background: #eeeded;
+    }
+    .active{
+      border-left: 2px solid #6ca1f7;
+      background: #eeeded;
+      border-radius: 0px 3px 3px 0px;
+    }
+    }
+
   }
 }
 

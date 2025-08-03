@@ -30,6 +30,7 @@
             :height="markdownHeight"
             v-if="editorType==1"
             v-model="formData.markdownContent"
+            @htmlContent="setHtmlContent"
             ></EditorMarkdown>
 
              </el-form-item>
@@ -47,6 +48,7 @@
             clearable
             v-model="formData.title" 
             placeholder="提示信息"
+            maxlength="150"
             ></el-input>
         </el-form-item>
         <el-form-item label="板块" prop="boardIds">
@@ -70,21 +72,32 @@
             v-model="formData.summary"
             placeholder="请输入摘要"
             resize="none"   
-            maxlength="150"
-            />
+            maxlength="200"
+            ></el-input>
         </el-form-item>
-        <el-form-item label="附件" prop="attachments">
-            <AttachmentSelector v-model="formData.attachments"></AttachmentSelector>
+        <el-form-item label="附件" prop="cover">
+            <AttachmentSelector v-model="formData.attachment"></AttachmentSelector>
+        </el-form-item>
+            <el-form-item 
+                label="积分" 
+                prop="integral"     
+                v-if="formData.attachment">
+            <el-input
+            clearable
+            v-model="formData.integral"
+            placeholder="请输入积分"
+            ></el-input>
+            <span class="tips">附件下载积分 0表示无需积分</span>
         </el-form-item>
         <!-- 输出 -->
          <el-form-item label="" prop="">
-            <el-button type="primary" :style="{width:'100%'}">保存</el-button>
+            <el-button 
+            type="primary" 
+            :style="{width:'100%'}" @click="postHandler"
+            >保存</el-button>
          </el-form-item>
             </div>
-             <!-- input输入 -->
-
         </el-card>
-       
     </div>
     </el-form>  
   </div>
@@ -92,7 +105,7 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus';
-import { ref,reactive,getCurrentInstance,watch, nextTick } from 'vue';
+import { ref,getCurrentInstance,watch, nextTick } from 'vue';
 import{useRouter,useRoute} from 'vue-router';
 const {proxy}=getCurrentInstance();
 const router=useRouter();
@@ -133,13 +146,35 @@ const getArticleDetail=async()=>{
             let articleInfo=result.data.forumArticle;
             //设置编辑器
             editorType.value=articleInfo.editorType;
+            //设置板块信息
+            articleInfo.boardIds=[];
+            articleInfo.boardIds.push(articleInfo.pBoardId);
+            if(articleInfo.boardId!=null&&articleInfo.boardId!=0){
+                articleInfo.boardIds.push(articleInfo.boardId);
+            }
+            //设置封面
+            if(articleInfo.cover){
+                articleInfo.cover={imageUrl:articleInfo.cover};
+            }
+            //设置附件
+            if(result.data.attachment){
+                articleInfo.attachment={
+                    name:result.data.attachment.fileName,
+                };
+                articleInfo.integral=result.data.attachment.integral;
+            }
             formData.value=articleInfo;
         }else{
         formData.value={};
         editorType.value=proxy.VueCookies.get("editorType")||0;
-        }
-    })
-}
+        };
+    });
+};
+//设置富文本编辑器内容
+const setHtmlContent=(htmlContent)=>{
+    formData.value.content=htmlContent;
+};
+
 watch(
 ()=>route.params,
 ()=>(newVal,oldVal)=>{
@@ -153,8 +188,64 @@ watch(
 const formData=ref({});
 const formDataRef=ref({});
 const rules={
-    title:[{required:true,message:"请输入标题"}],
+    title:[
+        {required:true,message:"请输入标题"},
+        {max:150,message:"标题太长"}
+    ],
+    boardIds:[{required:true,message:"请选择板块"}],
+    content:[{required:true,message:"请输入正文"}],
 };
+
+//提交信息
+const postHandler=()=>{    
+    formDataRef.value.validate(async(valid)=>{
+        if(!valid){
+            return;
+        }
+        let params={};
+        Object.assign(params,formData.value);
+        //设置板块ID
+        if(params.boardIds.length==1){
+            params.boardId=params.boardIds[0];
+        }else if(params.boardIds.length==2){
+            params.boardId=params.boardIds[1];
+            params.pBoardId=params.boardIds[0];
+        }
+        delete params.boardIds;
+        //设置编辑器类型
+        params.editorType=editorType.value;
+        //获取内容
+        const contentText=params.content.replace(/<(?!img).*?>/g,"");
+        if(contentText==""){
+            proxy.message.warning("正文不为空");
+            return;
+        }
+        if(params.attachment!=null){
+            params.attachmentType=1;
+        }else{
+            params.attachmentType=0;
+        }
+        //封面
+        if(!(params.cover instanceof File)){
+            delete params.cover;
+        }
+        //附件不是文件
+        if(!(params.attachment instanceof File)){
+            delete params.attachment;
+        }
+        let result=await proxy.Request({
+            url:params.articleId?api.updateArticle:api.postArticle,
+            params:params,
+        });
+        if(!result){
+            return;
+        }
+        proxy.Message.success("保存成功");
+        router.push(`/post/${result.data}`);
+    });
+
+}
+
 const boardProps={
     multiple:false,
     checkStrictly:true,
@@ -211,7 +302,15 @@ const changeEditor=()=>{
             .setting-inner{
                 max-height: calc(100vh - 120px);
                 overflow-y: auto;
+                .el-form-item{
+                    align-items: flex-start;
+                }
             }
+            .tips{
+                    font-size: 12px;
+                    color:rgb(121,121,121);
+                    margin-top: 5px;
+                }
         }
     }
 }

@@ -253,7 +253,7 @@ watch(
         }
         .desc {
           margin-top: 5px;
-          text-align: left;
+          text-align: center;
           font-size: 14px;
           color: #929393;
         }
@@ -287,4 +287,4 @@ watch(
     }
   }
 }
-</style>
+</style>    

@@ -40,6 +40,10 @@ const router = createRouter({
         path: '/admin',
         name: "社区管理",
         component: () => import('@/views/Admin.vue'),
+      }, {
+        path: '/user/message/:type',
+        name: "消息",
+        component: () => import('@/views/ucenter/MessageList.vue'),
       },]
     }
   ]
