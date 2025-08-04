@@ -44,7 +44,16 @@ const router = createRouter({
         path: '/user/message/:type',
         name: "消息",
         component: () => import('@/views/ucenter/MessageList.vue'),
-      },]
+      }, {
+        path: '/search',
+        name: "搜索",
+        component: () => import('@/views/Search.vue'),
+      }]
+    },
+    {
+      path: "/:pathMatch(.*)*",
+      name: "404",
+      component: () => import('@/views/Error404.vue'),
     }
   ]
 })

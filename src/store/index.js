@@ -1,6 +1,7 @@
 import { createStore } from "vuex";
 
 export default createStore({
+    //状态
     state: {
         loginUserInfo: null,
         //是否展示登录
@@ -11,8 +12,11 @@ export default createStore({
         activePboardId: 0,
         //当前二级板块
         activeBoardId: 0,
+        //系统设置
+        sysSetting: {},
 
     },
+    //计算属性
     getters: {
         getLoginUserInfo: (state) => {
             return state.loginUserInfo;
@@ -33,6 +37,7 @@ export default createStore({
             return state.activeBoardId;
         },
     },
+    //同步修改状态
     mutations: {
         updateLoginUserInfo(state, value) {
             state.loginUserInfo = value;
@@ -48,8 +53,19 @@ export default createStore({
         },
         setActiveBoardId(state, value) {
             state.activeBoardId = value;
+        },
+        updateMessageCountInfo(state, value) {
+            state.messageCountInfo = value;
+        },
+        readMessage: (state, value) => {
+            state.messageCountInfo.total = state.messageCountInfo.total - state.messageCountInfo[value];
+            state.messageCountInfo[value] = 0;
+        },
+        saveSysSetting: (state, value) => {
+            state.sysSetting = value;
         }
     },
+    //异步修改状态
     actions: {},
     modules: {}
 })

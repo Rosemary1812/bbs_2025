@@ -35,7 +35,7 @@
              @loadData="loadArticle"
             NoDataMsg="暂无文章">
                 <template #default="{ data }">
-                    <ArticleListItem :data="data" />
+                    <ArticleListItem :data="data" :showComment="showComment" ></ArticleListItem>
                 </template>
             </DataList>
         </div>
@@ -121,7 +121,21 @@ watch(
   },
   { immediate: true, deep: true }
 );
-
+const showComment=ref(false); 
+watch(
+  ()=>store.state.sysSetting,
+  (newVal,oldVal)=>{
+    console.log('系统设置变化:', newVal);
+    if(newVal && newVal.commentOpen !== undefined){
+      showComment.value=newVal.commentOpen;
+      console.log('评论开关设置为:', newVal.commentOpen);
+    } else {
+      console.log('系统设置中没有commentOpen字段，使用默认值true');
+      showComment.value = true;
+    }
+  },
+  {immediate:true,deep:true}
+);
 </script>
 
 

@@ -23,6 +23,8 @@ import { ref,shallowRef,onBeforeUnmount } from 'vue';
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue';
 import { getCurrentInstance } from 'vue';
 const {proxy}=getCurrentInstance();
+import { useStore } from 'vuex';
+const store=useStore();
 
 const props=defineProps({
   modelValue:{

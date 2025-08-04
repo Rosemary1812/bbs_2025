@@ -27,6 +27,7 @@
             <!-- 标题 -->
             <div class="title">{{ articleInfo.title }}
               <el-tag v-if="articleInfo.status==0" type="danger">待审核</el-tag>
+              <span class="tag tag-no-audit" v-if="articleInfo.status==0">待审核</span>
             </div>
             <!-- 用户信息 -->
             <div class="user-info">
@@ -69,7 +70,7 @@
               </div>
              </div>
              <!-- 评论 -->
-              <div class="comment-panel" id="view-comment">
+              <div class="comment-panel" id="view-comment" v-if="showComment&&articleInfo.status==1">
                 <CommentList 
                 v-if="articleInfo.articleId"
                 :articleId="articleInfo.articleId" 
@@ -109,7 +110,7 @@
                   </div>
                 </el-badge>
                 <!-- 评论 -->
-                 <el-badge :value="articleInfo.commentCount" type="info" :hidden="!articleInfo.commentCount>0">
+                 <el-badge :value="articleInfo.commentCount" type="info" :hidden="!articleInfo.commentCount>0" v-if="showComment">
                   <div class="quick-item" @click="goToPosition('view-comment')">
                     <span class="iconfont icon-comment"></span>
                   </div>
@@ -369,6 +370,18 @@ const getScrollTop=()=>{
 onUnmounted(()=>{
   window.removeEventListener("scroll",listenScroll,false);
 });
+const showComment=ref(false); 
+watch(
+  ()=>store.state.sysSetting,
+  (newVal,oldVal)=>{
+    if(newVal && newVal.commentOpen !== undefined){
+      showComment.value=newVal.commentOpen;
+    } else {
+      showComment.value = true;
+    }
+  },
+  {immediate:true,deep:true}
+);
 </script>
 
 <style lang="scss" >

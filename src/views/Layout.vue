@@ -57,10 +57,10 @@
         </div>
     <!-- 登陆注册用户信息· -->
     <div class="user-info-panel">
-      <el-button type="info" class="op-btn" size="default" @click="newPost">
+      <el-button type="primary" class="op-btn" size="default" @click="newPost">
         发帖<span class="iconfont icon-add"></span>
       </el-button>
-      <el-button type="info" class="op-btn" size="default">
+      <el-button type="primary" class="op-btn" size="default" @click="goSearch">
         搜索<span class="iconfont icon-search"></span>
       </el-button>
       
@@ -146,8 +146,47 @@
   <div class="body-content">
     <router-view />
   </div>
+  <div class="footer" v-if="showFooter">
+    <div 
+    class="footer-content"
+    :style="{width:proxy.globalInfo.bodyWidth+'px'}"
+    >
+    <el-row>
+      <el-col :span="6" class="item">
+        <div class="logo">
+          <div class="logo-letter">
+            <span v-for="item in logoInfo" :style="{color:item.color}">{{ item.letter }}</span>
+          </div>
+        </div>
+        <div class="info">一个干货满满的社区</div>
+      </el-col>
+      <el-col :span="6" class="item">
+        <div class="title">网站相关</div>
+        <div>
+          <div><a href="###">关于我们</a></div>
+          <div><a href="###">联系我们</a></div>
+          <div><a href="###">网站统计</a></div>
+        </div>
+      </el-col>
+      <el-col :span="6" class="item">
+        <div class="title">友情链接</div>
+          <div><a href="###">友情链接</a></div>
+      </el-col>
+      <el-col :span="6" class="item">
+        <div class="title">关注站长</div>
+        <div>
+          <div><a href="###">Github</a></div>
+          <div><a href="###">Weibo</a></div>
+          <div><a href="###">X(Twitter)</a></div>
+        </div>
+      </el-col>
+    </el-row>
+      </div>
+  </div>
   <!-- 登录注册 -->
   <LoginAndRegister ref="loginAndRegisterRef" />
+  <!-- 回到顶部 -->
+   <el-backtop :right="100" :bottom="100" ></el-backtop>
 </div>
 </template>
 
@@ -157,7 +196,6 @@ import { ref,reactive,getCurrentInstance, onMounted, watch } from 'vue'
 import { useRouter,useRoute } from 'vue-router';
 import {useStore} from "vuex";
 import Avatar from '@/components/Avatar.vue';
-import { it, tr } from 'element-plus/es/locale/index.mjs';
 const{proxy}=getCurrentInstance();
 const router=useRouter();
 const route=useRoute();
@@ -167,6 +205,8 @@ const api={
   getUserInfo:"/getUserInfo",
   loadBoard:"/board/loadBoard",
   loadMessageCount:"/ucenter/loadMessageList",
+  logout:"/logout",
+  getSysSetting:"/getSysSetting",
 };
 
 const logoInfo=ref([
@@ -243,11 +283,13 @@ loginAndRegisterRef.value.showPanel(type);
 onMounted(()=>{
   initScroll();
   getUserInfo();
+  loadSysSetting();
 });
 
-const getUserInfo=()=>{
-  let result =proxy.Request({
+const getUserInfo=async()=>{
+  let result =await proxy.Request({
     url:api.getUserInfo,
+    showError: false, // 不显示错误信息
   });
   if(!result){
     return;
@@ -273,10 +315,11 @@ const userInfo=ref({});
 watch(
   ()=>store.state.loginUserInfo,
   (newVal,oldVal)=>{
+      console.log('loginUserInfo changed:', oldVal, '->', newVal);
       if(newVal!=undefined&&newVal!=null){
         userInfo.value=newVal;
       }else{
-
+        userInfo.value={}; // 清空用户信息
       }
   },
   {immediate:true,deep:true}
@@ -285,11 +328,12 @@ watch(
 watch(
   ()=>store.state.showLogin,
   (newVal,oldVal)=>{
+    console.log('showLogin changed:', oldVal, '->', newVal);
     if(newVal){
       loginAndRegister(1);
     }
   },
-  {immediate:true,deep:true}
+  {immediate:false,deep:true}
 );
 
 //板块点击
@@ -341,10 +385,6 @@ const goToAdmin=()=>{
   router.push("/admin");
 }
 
-const logout=()=>{
-  store.commit("updateLoginUserInfo", null);
-  router.push("/");
-}
 //消息
 const goToMessage=(type)=>{
   router.push(`/user/message/${type}`);
@@ -360,7 +400,50 @@ const messageCountInfo=ref({});
     }
     messageCountInfo.value=result.data;
   };
-loadMessageCount();
+
+watch(
+  ()=>store.state.loginUserInfo,
+  (newVal,oldVal)=>{
+    if(newVal){
+      loadMessageCount();
+    }
+  },
+  {immediate:true,deep:true}
+);
+
+//退出
+const logout=()=>{
+  proxy.Confirm("确定退出吗？",async()=>{
+    let result=await proxy.Request({
+      url:api.logout,
+    });
+    store.commit("updateLoginUserInfo",null);
+  });
+}
+
+const loadSysSetting=async()=>{
+  let result=await proxy.Request({
+    url:api.getSysSetting,
+  })
+  if(!result){
+    return;
+  }
+  store.commit("saveSysSetting",result.data);
+}
+const goSearch=()=>{
+  router.push("/search");
+}
+const showFooter=ref(true);
+watch(
+  ()=>route.path,
+  (newVal,oldVal)=>{
+    if(newVal.indexOf("newPost")!=-1||newVal.indexOf("editPost")!=-1){
+      showFooter.value=false;
+    }else{
+      showFooter.value=true;
+    }
+  },
+)
 </script>
 
 <style lang="scss" >
@@ -485,6 +568,42 @@ justify-content: space-around;
     color: #fff;
     margin-left: 10px;
   }
+}
+.footer{
+  background:#e9e9e9;
+  height: 140px;
+  margin-top: 10px;
+  .footer-content{
+    margin: 0px auto;
+    padding-top:10px;
+    max-width: 1400px;
+    .item{
+      text-align: center;
+    .title{
+      font-size:18px;
+      margin-bottom:10px;
+    }
+    a{
+      font-size:14px;
+      display: block;
+      text-decoration: none;
+      color:var(--text2);
+      line-height: 25px;
+    }
+  }
+  .logo{
+    
+    .logo-letter{
+      font-size: 30px;
+    }
+    .info{
+      margin-top:10px;
+      color:rgb(93,91,91);
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+  }
+}
 }
 </style>
 

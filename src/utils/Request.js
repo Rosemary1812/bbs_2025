@@ -1,37 +1,40 @@
-import axios from 'axios';
-import { ElLoading } from 'element-plus';
-import message from "@/utils/Message";
-import { he, ms, tr } from 'element-plus/es/locale/index.mjs';
-import store from '../store';
 
-const contentTypeForm = "application/x-www-form-urlencoded"
+// export default request;
+import axios from 'axios'
+
+import { ElLoading } from 'element-plus'
+import store from "@/store"
+import Message from "@/utils/Message"
+
+const contentTypeForm = "application/x-www-form-urlencoded;charset=UTF-8";
 const contentTypeJson = "application/json"
 
 const instance = axios.create({
     baseURL: "/api",
-    timeout: 10 * 1000,
+    timeout: 30 * 1000,
 })
 //请求前过滤器
 let loading = null;
-instance.interceptors.request.use((config) => {
-    if (config.showLoading) {
-        loading = ElLoading.service({
-            lock: true,
-            text: 'Loading...',
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 3000 // 增加zIndex，确保在Dialog之上
-        })
+instance.interceptors.request.use(
+    (config) => {
+        if (config.showLoading) {
+            loading = ElLoading.service({
+                lock: true,
+                text: "加载中......",
+                background: 'rgba(0,0,0,0.7)'
+            })
+        }
+        return config;
+    }, (error) => {
+        if (error.config.showLoading && loading) {
+            loading.close();
+        }
+        Message.error("请求发送失败");
+        return Promise.reject("请求发送失败");
     }
-    return config;
-}, (error) => {
-    if (error.config.showLoading && loading) {
-        loading.close();
-    }
-    message.error("请求发送失败")
-    return Promise.reject("请求发送失败");
-});
+);
 
-//响应后过滤器
+//请求后过滤器
 instance.interceptors.response.use(
     (response) => {
         const { showLoading, errorCallback, showError } = response.config;
@@ -39,37 +42,32 @@ instance.interceptors.response.use(
             loading.close();
         }
         const responseData = response.data;
-        console.log('API响应:', response.config.url, responseData);
         if (responseData.code == 200) {
             return responseData;
         } else if (responseData.code == 901) {
-            store.commit("showLogin", true);
+            // 只在明确需要登录的操作中才显示登录框
+            // store.commit("showLogin", true); // 注释掉这行，避免自动显示登录框
             store.commit("updateLoginUserInfo", null);
-            return Promise.reject({ showError: false, msg: "登录超时" })
+            return Promise.reject({ showError: false, msg: "登录超时" });
         } else {
             if (errorCallback) {
                 errorCallback(responseData)
             }
-            return Promise.reject({ showError: false, msg: responseData.info });
+            return Promise.reject({ showError: showError, msg: responseData.info });
         }
+
+
     }, (error) => {
-        console.error('网络请求错误:', error);
-        if (error.config && error.config.showLoading && loading) {
+        if (error.config.showLoading && loading) {
             loading.close();
         }
-
-        // 检查网络连接
-        if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-            return Promise.reject({ showError: true, msg: "无法连接到服务器，请检查网络连接或联系管理员" });
-        }
-
-        return Promise.reject({ showError: true, msg: "网络异常: " + (error.message || '未知错误') });
+        return Promise.reject({ showError: true, msg: "网络异常" });
     }
 );
 
 
-const request = async (config) => {
-    const { url, params, dataType, showLoading = true, errorCallback, showError = true } = config;
+const request = (config) => {
+    const { url, params, dataType, showLoading = true, errorCallback, showError = true } = config
     let contentType = contentTypeForm;
     let fromData = new FormData();
     for (let key in params) {
@@ -80,21 +78,19 @@ const request = async (config) => {
     }
     let headers = {
         'Content-Type': contentType,
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
     }
-    try {
-        return await instance.post(url, fromData, {
-            headers: headers,
-            showLoading: showLoading,
-            errorCallback: errorCallback,
-            showError: showError
-        });
-    } catch (error) {
+    return instance.post(url, fromData, {
+        headers: headers,
+        showLoading: showLoading,
+        errorCallback: errorCallback,
+        showError: showError
+    }).catch(error => {
         if (error.showError) {
-            message.error(error.msg);
+            Message.error(error.msg);
         }
         return null;
-    }
+    })
 }
 
 export default request;
